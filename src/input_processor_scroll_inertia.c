@@ -677,8 +677,8 @@ static bool handle_tracked_in_coasting(struct scroll_inertia_data *data,
 
     /* Reverse direction — user wants to scroll the other way.  Cancel
      * inertia and re-process this event in TRACKING. */
-    to_tracking_from_coasting(data);
-    return handle_tracked_in_tracking(data, cfg, event, raw_value);
+       to_tracking_from_coasting(data);
+       return handle_tracked_in_tracking(data, cfg, event, raw_value);
 }
 
 /* AXIS_BOTH COASTING handler.  2D-pan semantics: X and Y are equal
@@ -702,8 +702,8 @@ static bool handle_tracked_in_coasting_both(struct scroll_inertia_data *data,
                                            int32_t raw_value) {
     bool is_y = (event->code == INPUT_REL_WHEEL);
     int32_t *axis_vel   = is_y ? &data->vel_y      : &data->vel_x;
-    int32_t *axis_peak  = is_y ? &data->peak_vel_y : &data->peak_vel_x;
-    int32_t *axis_accum = is_y ? &data->accum_y    : &data->accum_x;
+    //int32_t *axis_peak  = is_y ? &data->peak_vel_y : &data->peak_vel_x;
+    //int32_t *axis_accum = is_y ? &data->accum_y    : &data->accum_x;
 
     /* Fresh axis.  The user is adding a new pan direction while the
      * other axis still coasts; don't treat vel==0 as a reversal.  We
