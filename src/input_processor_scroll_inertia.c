@@ -715,14 +715,8 @@ static bool handle_tracked_in_coasting_both(struct scroll_inertia_data *data,
 
     bool same_dir = (event->value > 0) == (*axis_vel > 0);
     if (same_dir) {
-        /* AXIS_BOTH: pass the vector magnitude as the comparison
-         * reference so the "clearly weaker" gate (event < coast/2)
-         * fires at the same physical speed as in single-axis mode.
-         * Using *axis_vel alone would shrink the threshold to the
-         * per-axis component, making a diagonal coast absorb weak
-         * events that a single-axis coast of equal physical speed
-         * would have passed through — the root cause of the axis=0
-         * freeze on mid-to-low-speed coasts. */
+        /* Reverse on either axis cancels all inertia.
+ * Re-process the reverse event as new tracking input. */
         int32_t mag = magnitude(data->vel_y, data->vel_x, cfg);
         return coast_same_dir(data, cfg, event, axis_vel, mag);
     }
@@ -738,17 +732,8 @@ static bool handle_tracked_in_coasting_both(struct scroll_inertia_data *data,
      * the user "rolling past a stale coast".  Leaving it accumulating
      * means an otherwise-healthy mixed-direction pan could hit
      * suppress-limit sooner than intended. */
-    *axis_vel   = 0;
-    *axis_peak  = 0;
-    *axis_accum = 0;
-    data->suppress_count = 0;
-
-    int32_t other_vel = is_y ? data->vel_x : data->vel_y;
-    if (other_vel == 0) {
-        to_tracking_from_coasting(data);
-        return handle_tracked_in_tracking(data, cfg, event, raw_value);
-    }
-    return true;
+       to_tracking_from_coasting(data);
+       return handle_tracked_in_tracking(data, cfg, event, raw_value);
 }
 
 /* Single-axis cross-axis events never pass through downstream.  They
