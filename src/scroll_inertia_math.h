@@ -33,6 +33,8 @@ struct scroll_inertia_config {
 
     int32_t start_fp;
     int32_t move;
+    int32_t start_x_fp;
+    int32_t move_x;
     int32_t release_ms;
 
     int32_t fast_fp;
