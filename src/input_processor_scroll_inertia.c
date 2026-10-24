@@ -438,8 +438,10 @@ static void to_coasting(struct scroll_inertia_data *data,
      * to scale the decay rate; the taper below confines the effect to
      * the upper speed band so the tail still converges at the unscaled
      * rate. */
+    int32_t arm_move = move_for_gesture(data, cfg);
+       
     data->commit_permille = (int64_t)data->total_movement * 1000
-                            / (data->total_movement + cfg->move);
+                        / (data->total_movement + arm_move);
     /* Per-axis taper reference, captured post-clamp so taper starts at
      * 1.0 on each live axis regardless of AXIS_BOTH vs single-axis. */
     data->init_vel_y = abs32(data->vel_y);
@@ -523,15 +525,17 @@ static bool handle_tracked_in_tracking(struct scroll_inertia_data *data,
      * path for strict angle invariance. */
     int32_t peak_magnitude = magnitude(data->peak_vel_x,
                                        data->peak_vel_y, cfg);
-    bool vel_armed = (peak_magnitude >= cfg->start_fp);
+    bool vel_armed =
+    (peak_magnitude >= start_for_gesture(data, cfg));
     /* post_coast bypasses min-events: after a real coast, the user's
      * next flick doesn't need to re-prove itself against the noise
      * filter.  start/move still apply, so sub-threshold jitter can't
      * arm. */
     bool events_ok = data->post_coast ||
                      data->tracking_count >= cfg->min_events;
-    bool armed = vel_armed && data->total_movement >= cfg->move
-                 && events_ok;
+    bool armed = vel_armed &&
+              data->total_movement >= move_for_gesture(data, cfg)
+              && events_ok;
 
     /* Deceleration detection — magnitude-based for angle invariance.
      * A flick slowing down in X but steady in Y (or vice versa) is
@@ -645,7 +649,11 @@ static bool coast_same_dir(struct scroll_inertia_data *data,
          * weakly-armed original gesture can't amplify decay against
          * the bumped-up velocity.  init_vel_* / init_mag are left
          * stale on purpose; commit=1000 makes them irrelevant. */
-        if (abs32(event_vel_fp) >= cfg->start_fp) {
+        int32_t bump_start_fp =
+           (event->code == INPUT_REL_HWHEEL)
+               ? cfg->start_x_fp : cfg->start_fp;
+
+       if (abs32(event_vel_fp) >= bump_start_fp) {
             data->inertia_start_time = k_uptime_get();
             data->commit_permille = 1000;
         }
@@ -980,9 +988,10 @@ static void stop_detect_handler(struct k_work *work) {
     /* Same vector-magnitude basis as the in-event arming check — see
      * handle_tracked_in_tracking for the rationale. */
     int32_t vel_magnitude = magnitude(data->vel_x, data->vel_y, cfg);
-    bool vel_ok = (vel_magnitude >= cfg->start_fp);
-    bool mov_ok = data->total_movement >= cfg->move;
-
+       bool vel_ok =
+    (vel_magnitude >= start_for_gesture(data, cfg));
+       bool mov_ok =
+    data->total_movement >= move_for_gesture(data, cfg);
     bool events_ok = data->post_coast ||
                      data->tracking_count >= cfg->min_events;
     if (vel_ok && mov_ok && events_ok) {
@@ -1109,6 +1118,8 @@ static struct zmk_input_processor_driver_api scroll_inertia_driver_api = {
         .blend      = DT_INST_PROP(n, blend),                                 \
         .start_fp   = DT_INST_PROP(n, start) * FP_SCALE,                      \
         .move       = DT_INST_PROP(n, move),                                  \
+        .start_x_fp = DT_INST_PROP_OR(n, start_x, DT_INST_PROP(n, start)) * FP_SCALE, \
+        .move_x     = DT_INST_PROP_OR(n, move_x, DT_INST_PROP(n, move)),      \
         .release_ms = DT_INST_PROP(n, release),                               \
         .fast_fp    = DT_INST_PROP(n, fast) * FP_SCALE,                       \
         .decay_fast = DT_INST_PROP(n, decay_fast),                            \
