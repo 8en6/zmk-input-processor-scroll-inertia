@@ -278,6 +278,36 @@ static inline int32_t effective_axis(const struct scroll_inertia_config *cfg) {
     return unlock_active(cfg) ? AXIS_BOTH : cfg->axis;
 }
 
+/* Determine the dominant axis after scroll snap. */
+static inline bool is_horizontal_gesture(
+    const struct scroll_inertia_data *data,
+    const struct scroll_inertia_config *cfg) {
+
+    int32_t ax = effective_axis(cfg);
+
+    if (ax == AXIS_X) return true;
+    if (ax == AXIS_Y) return false;
+
+    return abs32(data->peak_vel_x) >
+           abs32(data->peak_vel_y);
+}
+
+static inline int32_t start_for_gesture(
+    const struct scroll_inertia_data *data,
+    const struct scroll_inertia_config *cfg) {
+
+    return is_horizontal_gesture(data, cfg)
+        ? cfg->start_x_fp : cfg->start_fp;
+}
+
+static inline int32_t move_for_gesture(
+    const struct scroll_inertia_data *data,
+    const struct scroll_inertia_config *cfg) {
+
+    return is_horizontal_gesture(data, cfg)
+        ? cfg->move_x : cfg->move;
+}
+
 /* Full per-tracked-axis update: EMA + total_movement + peak, and on a
  * direction reversal reset the gesture-wide counters (decel_count,
  * total_movement, tracking_count).  Lives here (not in the math
