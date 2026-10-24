@@ -72,6 +72,14 @@ properties:
       activation.  Sums raw per-event magnitudes from both axes, so
       a diagonal gesture accumulates naturally without a merge
       inflation.
+      
+  start-x:
+    type: int
+    description: Minimum peak speed for horizontal inertia.
+  move-x:
+    type: int
+    description: Minimum movement for horizontal inertia.
+  
   release:
     type: int
     default: 24
